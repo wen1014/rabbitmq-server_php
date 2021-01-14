@@ -4,7 +4,7 @@ return $msmqConfig = [
     'port'     => 5672,
     'username' => 'guest',
     'password' => 'guest',
-    'vhost'    => 'pan',
+    'vhost'    => '/',
     'exchange' => [
         //键==交换机名称
         'pd_file_exchange_test'        => [
