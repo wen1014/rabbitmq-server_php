@@ -89,12 +89,12 @@ class Rabbit implements Rbit
         );
     }
 
-    public static function getInstance($msmg)
+    public static function getInstance($msmq)
     {
-        if (!(self::$instance instanceof self)) {
-            self::$instance = new self($msmg);
+        if (!isset(self::$instance[$msmq])) {
+            self::$instance[$msmq] = new self($msmq);
         }
-        return self::$instance;
+        return self::$instance[$msmq];
     }
 
     /**
