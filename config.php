@@ -17,6 +17,17 @@ return $msmqConfig = [
             //是否自动删除
             'auto_delete' => false
         ],
+        //文件交换机的死信交换机
+        'dead.letter.pd_file_exchange_test'        => [
+            //交换器类型
+            'type'        => 'direct', //直连交换机.
+            //是否被动
+            'passive'     => false,
+            //是否持久化
+            'durable'     => true,
+            //是否自动删除
+            'auto_delete' => false
+        ],
         'pd_user_exchange_test'        => [
             //交换器类型
             'type'        => 'fanout', //扇形交换机
@@ -53,6 +64,22 @@ return $msmqConfig = [
             'arguments'   => [],
         ],
         'pd_file_log_queue_test'    => [
+            //是否被动
+            'passive'     => false,
+            //是否持久化
+            'durable'     => true,
+            //是否排他
+            'exclusive'   => false,
+            //是否自动删除
+            'auto_delete' => false,
+            //设置队列的其他一些参数，如 x-message-ttl、x-expires、x-max-length。
+            'arguments'   => [
+                //投递到哪个死信交换机
+                'x-dead-letter-exchange' => 'dead.letter.pd_file_exchange_test',
+                //x-dead-letter-routing-key参数不填默认为之前的路由.
+            ],
+        ],
+        'dead.letter.pd_file_log_queue_test'    => [
             //是否被动
             'passive'     => false,
             //是否持久化
@@ -117,6 +144,15 @@ return $msmqConfig = [
             'exchange_name' => 'pd_file_exchange_test',
             //队列名称.对应上面的queue数组
             'queue_name'    => 'pd_file_log_queue_test',
+            //路由键
+            'routing_key'   => 'file_log',
+        ],
+        //文件操作日志的死信队列.
+        'dead.letter.pd_file_log'    => [
+            //交换机名称 对应上面的exchange数组
+            'exchange_name' => 'dead.letter.pd_file_exchange_test',
+            //队列名称.对应上面的queue数组
+            'queue_name'    => 'dead.letter.pd_file_log_queue_test',
             //路由键
             'routing_key'   => 'file_log',
         ],

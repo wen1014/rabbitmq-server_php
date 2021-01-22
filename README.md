@@ -23,3 +23,9 @@
 1.系统日志`用户模块`生产者:`php producer05.php`
 1.系统日志`支付模块`生产者:`php producer06.php`
 2.系统日志消费者:`php consumer05.php`
+
+
+#### 死信队列的演示
+1.文件`日志`生产者:`php producer07.php`
+2.文件`日志`消费者:`php consumer06.php`
+3.文件`日志`死信消费者:`php consumer07.php`

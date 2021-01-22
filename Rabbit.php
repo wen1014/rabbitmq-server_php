@@ -79,7 +79,7 @@ class Rabbit implements Rbit
         //获取信道
         $this->channel  = $this->connection->channel();
         $exchangeConfig = $this->exchangeConfig;
-        //在信道里创建交换器
+        //在信道里创建交换机
         $this->channel->exchange_declare(
             $this->exchangeName,
             $exchangeConfig['type'],
@@ -145,7 +145,9 @@ class Rabbit implements Rbit
             $queueConfig['passive'],
             $queueConfig['durable'],
             $queueConfig['exclusive'],
-            $queueConfig['auto_delete']
+            $queueConfig['auto_delete'],
+            false,
+            new \PhpAmqpLib\Wire\AMQPTable($queueConfig['arguments'])
         );
         if ($this->exchangeConfig['type'] == 'topic') {
             $routeNameArr = explode(',',$this->route);
@@ -173,6 +175,8 @@ class Rabbit implements Rbit
         $this->channel->basic_consume($queue, '', false, false, false, false, function ($message) use ($closure) {
             if ($closure($message->body)) {
                 $message->delivery_info['channel']->basic_ack($message->delivery_info['delivery_tag']);
+            }else{
+                $message->delivery_info['channel']->basic_nack($message->delivery_info['delivery_tag'],false,false);
             }
         });
 
