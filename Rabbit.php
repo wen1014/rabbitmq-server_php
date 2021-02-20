@@ -185,6 +185,17 @@ class Rabbit implements Rbit
         }
     }
 
+    /**
+     * 析构函数关闭连接的信道和连接对象
+     * @throws \Exception
+     */
+    public function __destruct()
+    {
+        $this->channel->close();
+        $this->connection->close();
+    }
+
+
     //__clone方法防止对象被复制克隆
     public function __clone()
     {
