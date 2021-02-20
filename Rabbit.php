@@ -117,7 +117,7 @@ class Rabbit implements Rbit
         }
         $msg = new AMQPMessage($data, $properties);
         if ($this->exchangeConfig['type'] != 'topic') {
-            //如果是不是主题交换机.
+            //如果不是主题交换机. 就选配合文件配置的路由 否则就要使用自定义的路由[主题模式会存在N个路由]
             $routeName = $this->route;
         }
         $this->channel->basic_publish(
