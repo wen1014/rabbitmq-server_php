@@ -49,6 +49,9 @@ return $msmqConfig = [
             'auto_delete' => false
         ]
     ],
+    //is_retry = 是否重试
+    //is_dead => true, = 是否是死信队列
+
     'queue'    => [
         //队列名称
         'pd_file_create_queue_test' => [
@@ -60,6 +63,8 @@ return $msmqConfig = [
             'exclusive'   => false,
             //是否自动删除
             'auto_delete' => false,
+            //是否重试
+            'is_retry' => true,
             //设置队列的其他一些参数，如 x-message-ttl、x-expires、x-max-length。
             'arguments'   => [],
         ],
@@ -88,6 +93,8 @@ return $msmqConfig = [
             'exclusive'   => false,
             //是否自动删除
             'auto_delete' => false,
+            //是否是死信队列
+            'is_dead' => true,
             //设置队列的其他一些参数，如 x-message-ttl、x-expires、x-max-length。
             'arguments'   => [],
         ],

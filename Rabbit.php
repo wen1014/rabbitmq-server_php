@@ -5,6 +5,7 @@ require_once __DIR__ . '/Rbit.php';
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use \PhpAmqpLib\Message\AMQPMessage;
+use PhpAmqpLib\Wire\AMQPTable;
 
 /**
  * 描述：rabbit 服务类
@@ -112,9 +113,12 @@ class Rabbit implements Rbit
             //开启消息持久化
             $properties['delivery_mode'] = AMQPMessage::DELIVERY_MODE_PERSISTENT;
         }
-        if (is_array($data)) {
-            $data = json_encode($data, JSON_UNESCAPED_UNICODE);
+
+        if ($queueConfig['is_retry'] && !isset($properties['application_headers'])) {
+            //重试
+            $properties['application_headers'] = new AMQPTable(['retry' => 0]);
         }
+        $data = json_encode($data, JSON_UNESCAPED_UNICODE);
         $msg = new AMQPMessage($data, $properties);
         if ($this->exchangeConfig['type'] != 'topic') {
             //如果不是主题交换机. 就选配合文件配置的路由 否则就要使用自定义的路由[主题模式会存在N个路由]
@@ -140,6 +144,7 @@ class Rabbit implements Rbit
     {
         //声明消费队列
         $queueConfig = $this->queueConfig;
+
         [$queue, ,] = $this->channel->queue_declare(
             $this->queueName,
             $queueConfig['passive'],
@@ -150,7 +155,7 @@ class Rabbit implements Rbit
             new \PhpAmqpLib\Wire\AMQPTable($queueConfig['arguments'])
         );
         if ($this->exchangeConfig['type'] == 'topic') {
-            $routeNameArr = explode(',',$this->route);
+            $routeNameArr = explode(',', $this->route);
             foreach ($routeNameArr as $routeName) {
                 //绑定队列到交换机
                 $this->channel->queue_bind(
@@ -159,7 +164,7 @@ class Rabbit implements Rbit
                     $routeName
                 );
             }
-        }else{
+        } else {
             //绑定队列到交换机
             $this->channel->queue_bind(
                 $queue,
@@ -170,14 +175,33 @@ class Rabbit implements Rbit
 
         //消费消息
         $this->channel->basic_qos(null, $prefetchCount, null);
-
         //回调函数处理消息
-        $this->channel->basic_consume($queue, '', false, false, false, false, function ($message) use ($closure) {
-            if ($closure($message->body)) {
+        $this->channel->basic_consume($queue, '', false, false, false, false, function ($message) use ($closure, $queueConfig) {
+            //headersObject 是一个AMQPTable对象
+            $headersObject = $message->get_properties()['application_headers'];
+            //调用getNativeData()得到一个数组
+            $headersArray = $headersObject->getNativeData();
+            if ($queueConfig['is_dead'] ?? false) {
                 $message->delivery_info['channel']->basic_ack($message->delivery_info['delivery_tag']);
-            }else{
-                $message->delivery_info['channel']->basic_nack($message->delivery_info['delivery_tag'],false,false);
             }
+            if (!$closure($message) && !$queueConfig['is_dead']) {
+                if ($headersArray['retry'] < $this->requeue_count) {
+                    $headersArray['retry']++;//次数+1
+                    echo "{$message->body}消息重试第{$headersArray['retry']}次\n";
+                    //重新入列
+                    $this->send(json_decode($message->body, true), $message->delivery_info['routing_key'], [
+                        'application_headers' => new AMQPTable($headersArray)
+                    ]);
+
+                    $message->delivery_info['channel']->basic_ack($message->delivery_info['delivery_tag']);
+                } else {
+                    //TODO 超过三次,自己实现业务逻辑
+                    echo "{$message->body}消息重试次数已超过{$this->requeue_count}次.拒绝消息 投入死信队列\n";
+                    $message->delivery_info['channel']->basic_nack($message->delivery_info['delivery_tag'], false, false);
+                }
+            }
+
+
         });
 
         while (count($this->channel->callbacks)) {
